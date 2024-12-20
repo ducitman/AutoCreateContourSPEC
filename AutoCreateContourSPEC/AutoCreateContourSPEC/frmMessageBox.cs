@@ -44,6 +44,8 @@ namespace AutoCreateContourSPEC
 
         private int _topSpecSideType = 0;
         private double _slitPos = 0;
+        private double _startTUC = 0;
+        private double _endTUC = 0;
 
         private double _junctionA = 0;
         private double _junctionB = 0;
@@ -184,7 +186,7 @@ namespace AutoCreateContourSPEC
                         double argumentDifference = nextPoint - currentPoint;
 
                         double ratio = ((double)index - currentPoint) / argumentDifference;
-                        double newValue = currentValue + valueDifference * ratio;
+                        double newValue = Math.Round((currentValue + valueDifference * ratio),1,MidpointRounding.AwayFromZero);
 
                         outputListPos.Add(index.ToString());
                         outputListValue.Add(Math.Round(newValue, 1,MidpointRounding.AwayFromZero).ToString());                        
@@ -195,6 +197,58 @@ namespace AutoCreateContourSPEC
             outputListValue.Add(inputputListValue.Last().ToString());
             int count = 0;
             foreach(string item in outputListPos)
+            {
+                Console.WriteLine(item.ToString() + " : " + outputListValue[count]);
+                count++;
+            }
+        }
+        // Fixed add TUC intto function to prevent add value outside TUC area
+        private void BindDataToTopPlotList(List<string> outputListPos, List<string> outputListValue, List<double> inputListPos, List<double> inputputListValue, double startTUC, double endTUC)
+        {
+            int startArgument = 0;
+            for (int i = 0; i < inputListPos.Count - 1; i++)
+            {
+                double currentPoint = inputListPos[i];
+                double nextPoint = inputListPos[i + 1];
+                double currentValue = inputputListValue[i];
+                double nextValue = inputputListValue[i + 1];
+
+                outputListPos.Add(inputListPos[i].ToString());
+                outputListValue.Add(inputputListValue[i].ToString());
+                //int startArgument = ((int)currentPoint / 5 + 1) * 5;
+                if (currentPoint != nextPoint)
+                {
+                    if (currentPoint % 5 != 0 && currentPoint < 0)
+                    {
+                        startArgument = (int)(currentPoint - (currentPoint % 5));
+                    }
+                    else if (currentPoint % 5 != 0 && currentPoint > 0)
+                    {
+                        startArgument = (int)(currentPoint + (5 - currentPoint % 5));
+                    }
+                    else
+                    {
+                        startArgument = ((int)currentPoint / 5 + 1) * 5;
+                    }
+
+                    for (double index = startArgument; index < nextPoint; index += 5)
+                    {
+                        if (index >= nextPoint) break;
+                        double valueDifference = nextValue - currentValue;
+                        double argumentDifference = nextPoint - currentPoint;
+
+                        double ratio = ((double)index - currentPoint) / argumentDifference;
+                        double newValue = currentValue + valueDifference * ratio;
+
+                        outputListPos.Add(index.ToString());
+                        outputListValue.Add(Math.Round(newValue, 1, MidpointRounding.AwayFromZero).ToString());
+                    }
+                }
+            }
+            outputListPos.Add(inputListPos.Last().ToString());
+            outputListValue.Add(inputputListValue.Last().ToString());
+            int count = 0;
+            foreach (string item in outputListPos)
             {
                 Console.WriteLine(item.ToString() + " : " + outputListValue[count]);
                 count++;
@@ -247,10 +301,29 @@ namespace AutoCreateContourSPEC
             double endpoint = 0;
             double positionD = 0;
             double valueD = 0;
+
+            groupBox1.Controls.Clear();
+
+            DataTable tbl_Relevant_DieNo = new DataTable();
+            string query = "";
+            int startX = 20;
+            int spacing = 120;
             switch (_materialType)
             {
                 #region BF
-                case 1:                    
+                case 1:
+                    tbl_Relevant_DieNo = SqlConnect_10_118_11_111.GetData(@"Select * from BTMVLocalApps.dbo.MTRL_ContourDieNoDB where SizeName = '" + _bfSimulationData.ContNo + "' and DieStatus = '1' and " +
+                        " DieNo != '" + _bfSimulationData.KoContNo + "'");
+                    int count_Relevant_DieNo = tbl_Relevant_DieNo.Rows.Count;
+                    for(int i = 0; i < count_Relevant_DieNo; i++)
+                    {
+                        CheckBox checkbox = new CheckBox
+                        {
+                            Text = "Checkbox" + i.ToString(),
+                            Name = tbl_Relevant_DieNo.Rows[i]["DieNo"].ToString()
+                        };
+                        groupBox1.Controls.Add(checkbox);
+                    }
                     countPlotseries = Convert.ToInt32(_bfSimulationData.GaugeNum.ToString());
                     //plotExtendSeries = new string[countPlotseries, 2];
                     for (int i = countPlotseries - 1; i >= 0; i--)
@@ -306,6 +379,18 @@ namespace AutoCreateContourSPEC
 #endregion
                 #region Side
                 case 2:
+                    tbl_Relevant_DieNo = SqlConnect_10_118_11_111.GetData(@"Select * from BTMVLocalApps.dbo.MTRL_ContourDieNoDB where SizeName = '" + _bsideSimulationData.ContNo + "' and DieStatus = '1' and " +
+                        " DieNo != '" + _bsideSimulationData.KoContNo + "'");
+                    count_Relevant_DieNo = tbl_Relevant_DieNo.Rows.Count;
+                    for (int i = 0; i < count_Relevant_DieNo; i++)
+                    {
+                        CheckBox checkbox = new CheckBox
+                        {
+                            Text = "Checkbox" + i.ToString(),
+                            Name = tbl_Relevant_DieNo.Rows[i]["DieNo"].ToString()
+                        };
+                        groupBox1.Controls.Add(checkbox);
+                    }
                     double maxGauge = 0;
                     double maxPos = 0;
                     bool isContained = false;
@@ -595,7 +680,7 @@ namespace AutoCreateContourSPEC
                         plotChartSide.Series[0].Points.Insert(plotDataIndex, new SeriesPoint(listMaxPos[maxDataIndex].ToString(), listMaxValue[maxDataIndex].ToString()));
                         AddingPlotDataIndex(mainLinePlot, plotDataIndex, listMaxPos[maxDataIndex].ToString(), listMaxValue[maxDataIndex].ToString());
                     }
-                    //Fix
+                    // Fixed
                     if(Div5Num != 0 && Div2Num != 0)
                     {
                         List<int> indexOfMaxData = new List<int>();
@@ -618,7 +703,7 @@ namespace AutoCreateContourSPEC
                         }
                     }
                     
-                    //Fix Me
+                    //Fixed
                     
                     // Làm các series mặt cắt dựa trên extendPlotPos và extendPlotValue
                     BindSimualtionSavedData(_materialType);
@@ -626,7 +711,18 @@ namespace AutoCreateContourSPEC
                 #endregion 
                 #region Đối xứng không antena, có antena
                 case 3:
-                    
+                    tbl_Relevant_DieNo = SqlConnect_10_118_11_111.GetData(@"Select * from BTMVLocalApps.dbo.MTRL_ContourDieNoDB where SizeName = '" + _topSimulationData.ContNo + "' and DieStatus = '1' and " +
+                        " DieNo != '" + _topSimulationData.KoContNo + "'");
+                    count_Relevant_DieNo = tbl_Relevant_DieNo.Rows.Count;
+                    for (int i = 0; i < count_Relevant_DieNo; i++)
+                    {
+                        CheckBox checkbox = new CheckBox
+                        {
+                            Text = "Checkbox" + i.ToString(),
+                            Name = tbl_Relevant_DieNo.Rows[i]["DieNo"].ToString()
+                        };
+                        groupBox1.Controls.Add(checkbox);
+                    }
                     // Xử lý oposite side, stamp antena và serial side
                     FindJunction(_materialType);
                     countPlotseries = Convert.ToInt32(_topSimulationData.GaugeNum.ToString());
@@ -771,6 +867,8 @@ namespace AutoCreateContourSPEC
                                 AddingPlotData(series1Plot, position, valuation);
                             }
                         }
+                        //_startTUC = Convert.ToDouble(series1Plot[0].ArguementPlot);
+                        //_endTUC = Convert.ToDouble(series1Plot[series1Plot.Count].ArguementPlot);
                         extendPlotpos.Clear();
                         extendPlotValue.Clear();
                     }
@@ -1033,6 +1131,19 @@ namespace AutoCreateContourSPEC
                 #endregion
                 #region Top Bất đối xứng
                 case 4:
+                    query = @"Select * from BTMVLocalApps.dbo.MTRL_ContourDieNoDB where SizeName = '" + _topSimulationData.ContNo + "' and DieStatus = '1' and " + " DieNo != '" + _topSimulationData.KoContNo + "'";
+                    tbl_Relevant_DieNo = SqlConnect_10_118_11_111.GetData(query);
+                    count_Relevant_DieNo = tbl_Relevant_DieNo.Rows.Count;
+                    for (int i = 0; i < count_Relevant_DieNo; i++)
+                    {
+                        CheckBox checkbox = new CheckBox
+                        {
+                            Text = tbl_Relevant_DieNo.Rows[i]["DieNo"].ToString(),
+                            Location = new System.Drawing.Point(startX + i * spacing,20), // Tự động căn chỉnh vị trí
+                            Name = "Checkbox" + i.ToString()
+                        };
+                        groupBox1.Controls.Add(checkbox);
+                    }
                     // Xử lý oposite side, stamp antena và serial side
                     FindJunction(_materialType);
                     countPlotseries = Convert.ToInt32(_topSimulationData.GaugeNum.ToString());
@@ -1040,21 +1151,41 @@ namespace AutoCreateContourSPEC
                     plotChartTop.Series[0].Name = "Main Line";
                     startpoint = Convert.ToDouble(_topSimulationData.Div1X.Substring(0, 3));
                     endpoint = Convert.ToDouble(_topSimulationData.Div1X.Substring(3, 3));
-                    
-                    for (int i = countOppPlotSeries - 1; i >= 0; i--)
-                    {                        
-                        positionD = Convert.ToDouble(_oppTopSimulationData.GaugePos.Substring(i * 3, 3));
-                        valueD = Convert.ToDouble(_oppTopSimulationData.Gauge.Substring(i * 4, 4));
-                        plotDoublePos.Add(positionD * (-1));
-                        plotDoubleValue.Add(valueD);
-                    }
-                    Console.WriteLine("Done");
-                    for (int i = 0; i < countPlotseries; i++)
+                    if(_topSimulationData.SlitPos != 0 && _dataDieNoRegister.Rows[0]["UsingMachine"].ToString() == "K1S")
                     {
-                        positionD = Convert.ToDouble(_topSimulationData.GaugePos.Substring(i * 3, 3));
-                        valueD = Convert.ToDouble(_topSimulationData.Gauge.Substring(i * 4, 4));
-                        plotDoublePos.Add(positionD);
-                        plotDoubleValue.Add(valueD);
+                        for (int i = countPlotseries - 1; i >= 0; i--)
+                        {
+                            positionD = Convert.ToDouble(_topSimulationData.GaugePos.Substring(i * 3, 3));
+                            valueD = Convert.ToDouble(_topSimulationData.Gauge.Substring(i * 4, 4));
+                            plotDoublePos.Add(positionD * (-1));
+                            plotDoubleValue.Add(valueD);
+                        }
+                        Console.WriteLine("Done");
+                        for (int i = 0; i < countOppPlotSeries; i++)
+                        {
+                            positionD = Convert.ToDouble(_oppTopSimulationData.GaugePos.Substring(i * 3, 3));
+                            valueD = Convert.ToDouble(_oppTopSimulationData.Gauge.Substring(i * 4, 4));
+                            plotDoublePos.Add(positionD);
+                            plotDoubleValue.Add(valueD);
+                        }
+                    }
+                    else
+                    {
+                        for (int i = countOppPlotSeries - 1; i >= 0; i--)
+                        {
+                            positionD = Convert.ToDouble(_oppTopSimulationData.GaugePos.Substring(i * 3, 3));
+                            valueD = Convert.ToDouble(_oppTopSimulationData.Gauge.Substring(i * 4, 4));
+                            plotDoublePos.Add(positionD * (-1));
+                            plotDoubleValue.Add(valueD);
+                        }
+                        Console.WriteLine("Done");
+                        for (int i = 0; i < countPlotseries; i++)
+                        {
+                            positionD = Convert.ToDouble(_topSimulationData.GaugePos.Substring(i * 3, 3));
+                            valueD = Convert.ToDouble(_topSimulationData.Gauge.Substring(i * 4, 4));
+                            plotDoublePos.Add(positionD);
+                            plotDoubleValue.Add(valueD);
+                        }
                     }
                     Console.WriteLine("Done");
                     InsertDataToPlotList(plotDoublePos, plotDoubleValue);
@@ -1330,35 +1461,70 @@ namespace AutoCreateContourSPEC
 
                         double pos = 0, oppPos = 0, val = 0, oppVal = 0;
 
-                        for (int i = 0; i < Div5Num; i++)
+                        switch (_dataDieNoRegister.Rows[0]["UsingMachine"].ToString())
                         {
-                            pos = Convert.ToDouble(_topSimulationData.Div5X.Substring(i * 3, 3));                            
-                            val = Convert.ToDouble(_topSimulationData.Div5Y.Substring(i * 4, 4));
+                            case "K1S":
+                                for (int i = 0; i < Div5Num; i++)
+                                {
+                                    pos = Convert.ToDouble(_topSimulationData.Div5X.Substring(i * 3, 3));
+                                    val = Convert.ToDouble(_topSimulationData.Div5Y.Substring(i * 4, 4));
 
-                            //if (startpoint <= pos && pos <= endpoint && i < Div5Num - 1)
-                            if (i == 0)
-                            {
-                                val = val + 0.25;
-                            }
-                            plotChartTop.Series[5].Points.Add(new SeriesPoint(pos.ToString(), val.ToString()));
+                                    //if (startpoint <= pos && pos <= endpoint && i < Div5Num - 1)
+                                    if (i == 0)
+                                    {
+                                        val = val + 0.25;
+                                    }
+                                    plotChartTop.Series[5].Points.Add(new SeriesPoint((pos * (-1)).ToString(), val.ToString()));
+
+                                    AddingPlotData(series5Plot, (pos *(-1)).ToString(), val.ToString());
+                                }
+
+                                for (int i = 0; i < Div5NumOpp; i++)
+                                {
+                                    oppPos = Convert.ToDouble(_oppTopSimulationData.Div5X.Substring(i * 3, 3));
+                                    oppVal = Convert.ToDouble(_oppTopSimulationData.Div5Y.Substring(i * 4, 4));
+                                    //if (startpoint <= oppPos && oppPos <= endpoint && i < Div5NumOpp - 1)
+                                    if (i == 0)
+                                    {
+                                        oppVal = oppVal + 0.25;
+                                    }
+                                    plotChartTop.Series[6].Points.Add(new SeriesPoint(oppPos.ToString(), oppVal.ToString()));
+
+                                    AddingPlotData(series6Plot, (oppPos).ToString(), oppVal.ToString());
+                                }
+                                break;
+                            case "MAT":
+                                for (int i = 0; i < Div5Num; i++)
+                                {
+                                    pos = Convert.ToDouble(_topSimulationData.Div5X.Substring(i * 3, 3));
+                                    val = Convert.ToDouble(_topSimulationData.Div5Y.Substring(i * 4, 4));
+
+                                    //if (startpoint <= pos && pos <= endpoint && i < Div5Num - 1)
+                                    if (i == 0)
+                                    {
+                                        val = val + 0.25;
+                                    }
+                                    plotChartTop.Series[5].Points.Add(new SeriesPoint(pos.ToString(), val.ToString()));
+
+                                    AddingPlotData(series5Plot, pos.ToString(), val.ToString());
+                                }
+
+                                for (int i = 0; i < Div5NumOpp; i++)
+                                {
+                                    oppPos = Convert.ToDouble(_oppTopSimulationData.Div5X.Substring(i * 3, 3));
+                                    oppVal = Convert.ToDouble(_oppTopSimulationData.Div5Y.Substring(i * 4, 4));
+                                    //if (startpoint <= oppPos && oppPos <= endpoint && i < Div5NumOpp - 1)
+                                    if (i == 0)
+                                    {
+                                        oppVal = oppVal + 0.25;
+                                    }
+                                    plotChartTop.Series[6].Points.Add(new SeriesPoint((oppPos * (-1)).ToString(), oppVal.ToString()));
+
+                                    AddingPlotData(series6Plot, (oppPos * (-1)).ToString(), oppVal.ToString());
+                                }
+                                break;
+                        }
                             
-                            AddingPlotData(series5Plot, pos.ToString(), val.ToString());
-                        }
-
-                        for (int i = 0; i < Div5NumOpp; i++)
-                        {
-                            oppPos = Convert.ToDouble(_oppTopSimulationData.Div5X.Substring(i * 3, 3));
-                            oppVal = Convert.ToDouble(_oppTopSimulationData.Div5Y.Substring(i * 4, 4));
-                            //if (startpoint <= oppPos && oppPos <= endpoint && i < Div5NumOpp - 1)
-                            if(i == 0)
-                            {
-                                oppVal = oppVal + 0.25;
-                            }                            
-                            plotChartTop.Series[6].Points.Add(new SeriesPoint((oppPos * (-1)).ToString(), oppVal.ToString()));
-
-                            AddingPlotData(series6Plot, (oppPos *(-1)).ToString(), oppVal.ToString());
-                        }
-
                         plotChartTop.Series[5].Name = "MINI";
                         plotChartTop.Series[5].View.Color = Color.Blue;
                         plotChartTop.Series[6].Name = "MINI";
@@ -1783,6 +1949,171 @@ namespace AutoCreateContourSPEC
                     break;
             }
         }
+        private void SaveContourData(int materialType, List<string> listData)
+        {
+            string approveBy = Environment.MachineName.ToString() + "\\" + Properties.Settings.Default.Account;
+
+            DataTable emailList = SqlConnect_10_118_11_111.GetData(@"Select * from BTMVLocalApps.dbo.MTRL_SimulationEmailList");
+            //string notifyEmailList = "";
+            string query = "";
+            string queryLog = "";
+            List<string> queries = new List<string>();
+            PropertyInfo[] properties;
+            DataTable approvedContourResultData = new DataTable();
+            DataTable getTransferLogData = new DataTable();
+            foreach(string data in listData)
+            {
+                switch (materialType)
+                {
+                    case 1:
+                        properties = typeof(BFDataSimulation).GetProperties();
+                        approvedContourResultData = SqlConnect_10_118_11_111.GetData(@"Select * from BTMVLocalApps.dbo.MTRL_ContourDataFromSimulation where SizeName = '" + _bfSavedData.SizeName + "' AND DieNo = '" + data + "'");
+                        getTransferLogData = SqlConnect_10_118_11_111.GetData(@"Select * from MTRL_SimulationTransferLogs where ContNo = '" + _bfSimulationData.ContNo + "' AND " +
+                            "KoContNo = '" + data + "'");
+                        if (approvedContourResultData.Rows.Count > 0)
+                        {
+                            queries.Add(@"Delete from BTMVLocalApps.dbo.MTRL_ContourDataFromSimulation where SizeName = '" + _bfSavedData.SizeName + "' AND DieNo = '" + data + "'");
+                        }
+                        foreach (PropertyInfo property in properties)
+                        {
+                            string dataItem = property.Name.ToString();
+                            var propertyValue = property.GetValue(_bfSavedData);
+                            switch (dataItem)
+                            {
+                                case "SizeName":
+                                case "DieNo":
+                                case "UpdatedTime":
+                                    break;
+                                default:
+                                    query = @"INSERT INTO BTMVLocalApps.dbo.MTRL_ContourDataFromSimulation(SizeName, DieNo, UpdatedTime, Parameter, Spec, MachineType) VALUES"
+                                                    + " ('" + _bfSavedData.SizeName + "', '" + data + "', GETDATE()," +
+                                                    " '" + dataItem + "', '" + propertyValue + "','Bead Filler')";
+                                    queries.Add(query);
+                                    break;
+                            }
+                        }
+                        //Query save log
+                        queryLog = @"INSERT INTO MTRL_SimulationTransferLogs(ContNo, KoContNo, OiNo,BSSize,DepName,Reson,Width,MatName,DepDate,GaugeNum,GaugePos,Gauge,Notes,Approved_By,Approved_Date,EmailStatus,ApproveStatus,
+                                        MainSeriesPlotPos, MainSeriesPlotVal, SeriesPlot1Pos, SeriesPlot1Val, SeriesPlot2Pos, SeriesPlot2Val, SeriesPlot3Pos, SeriesPlot3Val, SeriesPlot4Pos, SeriesPlot4Val,
+                                        SeriesPlot5Pos, SeriesPlot5Val, SeriesPlot6Pos, SeriesPlot6Val) VALUES " +
+                                            " ('" + _bfSimulationData.ContNo + "','" + data + "','" + _bfSimulationData.OiNo + "','" + _bfSimulationData.BSSize + "','" + _bfSimulationData.DepName + "','" + _bfSimulationData.Reason + "'," +
+                                            "'" + _bfSimulationData.Wid + "','" + _bfSimulationData.MatName + "','" + _bfSimulationData.DepDate + "','" + _bfSimulationData.GaugeNum + "','" + _bfSimulationData.GaugePos + "','" + _bfSimulationData.Gauge + "'," +
+                                            "'" + _bfSimulationData.Notes + "','" + approveBy + "',GETDATE(),'0','1','" + PlotStringBuilder(mainLinePlot, 1) + "','" + PlotStringBuilder(mainLinePlot, 2) + "'," +
+                                            "'" + PlotStringBuilder(series1Plot, 1) + "','" + PlotStringBuilder(series1Plot, 2) + "','" + PlotStringBuilder(series2Plot, 1) + "','" + PlotStringBuilder(series2Plot, 2) + "','" + PlotStringBuilder(series3Plot, 1) + "','" + PlotStringBuilder(series3Plot, 2) + "'," +
+                                            "'" + PlotStringBuilder(series4Plot, 1) + "','" + PlotStringBuilder(series4Plot, 2) + "','" + PlotStringBuilder(series5Plot, 1) + "','" + PlotStringBuilder(series5Plot, 2) + "','" + PlotStringBuilder(series6Plot, 1) + "','" + PlotStringBuilder(series6Plot, 2) + "')";
+                        if (getTransferLogData.Rows.Count > 0)
+                        {
+                            queries.Add(@"DELETE FROM MTRL_SimulationTransferLogs WHERE ContNo = '" + _bfSimulationData.ContNo + "' AND KoContNo = '" + data + "' AND OiNo = '" + _bfSimulationData.OiNo + "'");
+                            queries.Add(queryLog);
+                        }
+                        else
+                        {
+                            queries.Add(queryLog);
+                        }
+
+                        SqlConnect_10_118_11_111.ExecuteQueryUsingTran(queries);
+                        break;
+                    case 2:
+                        properties = typeof(SideDataSimulation).GetProperties();
+                        approvedContourResultData = SqlConnect_10_118_11_111.GetData(@"Select * from BTMVLocalApps.dbo.MTRL_ContourDataFromSimulation where SizeName = '" + _sideSavedData.SizeName + "' AND DieNo = '" + data + "'");
+                        getTransferLogData = SqlConnect_10_118_11_111.GetData(@"Select * from MTRL_SimulationTransferLogs where ContNo = '" + _bsideSimulationData.ContNo + "' AND " +
+                            "KoContNo = '" + data + "'");
+                        if (approvedContourResultData.Rows.Count > 0)
+                        {
+                            queries.Add(@"Delete from BTMVLocalApps.dbo.MTRL_ContourDataFromSimulation where SizeName = '" + _sideSavedData.SizeName + "' AND DieNo = '" + data + "'");
+                        }
+                        foreach (PropertyInfo property in properties)
+                        {
+                            string dataItem = property.Name.ToString();
+                            var propertyValue = property.GetValue(_sideSavedData);
+                            switch (dataItem)
+                            {
+                                case "SizeName":
+                                case "DieNo":
+                                case "UpdatedTime":
+                                    break;
+                                default:
+                                    query = @"INSERT INTO BTMVLocalApps.dbo.MTRL_ContourDataFromSimulation(SizeName, DieNo, UpdatedTime, Parameter, Spec, MachineType) VALUES"
+                                                    + " ('" + _sideSavedData.SizeName + "', '" + data + "', GETDATE()," +
+                                                    " '" + dataItem + "', '" + propertyValue + "','Side')";
+                                    queries.Add(query);
+                                    break;
+                            }
+                        }
+                        //Query save log
+                        queryLog = @"INSERT INTO MTRL_SimulationTransferLogs(ContNo, KoContNo, OiNo,BSSize,DepName,Reson,Width,MatName,DepDate,GaugeNum,GaugePos,Gauge,Notes,Approved_By,Approved_Date,EmailStatus,ApproveStatus,
+                                        MainSeriesPlotPos, MainSeriesPlotVal, SeriesPlot1Pos, SeriesPlot1Val, SeriesPlot2Pos, SeriesPlot2Val, SeriesPlot3Pos, SeriesPlot3Val, SeriesPlot4Pos, SeriesPlot4Val,
+                                        SeriesPlot5Pos, SeriesPlot5Val, SeriesPlot6Pos, SeriesPlot6Val) VALUES " +
+                                            " ('" + _bsideSimulationData.ContNo + "','" + data + "','" + _bsideSimulationData.OiNo + "','" + _bsideSimulationData.BSSize + "','" + _bsideSimulationData.DepName + "','" + _bsideSimulationData.Reason + "'," +
+                                            "'" + _bsideSimulationData.Wid + "','" + _bsideSimulationData.MatName + "','" + _bsideSimulationData.DepDate + "','" + _bsideSimulationData.GaugeNum + "','" + _bsideSimulationData.GaugePos + "','" + _bsideSimulationData.Gauge + "'," +
+                                            "'" + _bsideSimulationData.Notes + "','" + approveBy + "',GETDATE(),'0','1','" + PlotStringBuilder(mainLinePlot, 1) + "','" + PlotStringBuilder(mainLinePlot, 2) + "'," +
+                                            "'" + PlotStringBuilder(series1Plot, 1) + "','" + PlotStringBuilder(series1Plot, 2) + "','" + PlotStringBuilder(series2Plot, 1) + "','" + PlotStringBuilder(series2Plot, 2) + "','" + PlotStringBuilder(series3Plot, 1) + "','" + PlotStringBuilder(series3Plot, 2) + "'," +
+                                            "'" + PlotStringBuilder(series4Plot, 1) + "','" + PlotStringBuilder(series4Plot, 2) + "','" + PlotStringBuilder(series5Plot, 1) + "','" + PlotStringBuilder(series5Plot, 2) + "','" + PlotStringBuilder(series6Plot, 1) + "','" + PlotStringBuilder(series6Plot, 2) + "')";
+                        if (getTransferLogData.Rows.Count > 0)
+                        {
+                            queries.Add(@"DELETE FROM MTRL_SimulationTransferLogs WHERE ContNo = '" + _bsideSimulationData.ContNo + "' AND KoContNo = '" + _bsideSimulationData.KoContNo + "' AND OiNo = '" + _bsideSimulationData.OiNo + "'");
+                            queries.Add(queryLog);
+                        }
+                        else
+                        {
+                            queries.Add(queryLog);
+                        }
+
+                        SqlConnect_10_118_11_111.ExecuteQueryUsingTran(queries);
+                        break;
+                    case 3:
+                    case 4:
+                        //List<string> queries2 = new List<string>();
+                        properties = typeof(TopDataSimulation).GetProperties();
+                        approvedContourResultData = SqlConnect_10_118_11_111.GetData(@"Select * from BTMVLocalApps.dbo.MTRL_ContourDataFromSimulation where SizeName = '" + _topSavedData.SizeName + "' AND DieNo = '" + data + "'");
+                        getTransferLogData = SqlConnect_10_118_11_111.GetData(@"Select * from MTRL_SimulationTransferLogs where ContNo = '" + _topSimulationData.ContNo + "' AND " +
+                            "KoContNo = '" + data + "'");
+                        if (approvedContourResultData.Rows.Count > 0)
+                        {
+                            queries.Add(@"Delete from BTMVLocalApps.dbo.MTRL_ContourDataFromSimulation where SizeName = '" + _topSavedData.SizeName + "' AND DieNo = '" + data + "'");
+                        }
+                        foreach (PropertyInfo property in properties)
+                        {
+                            string dataItem = property.Name.ToString();
+                            var propertyValue = property.GetValue(_topSavedData);
+                            switch (dataItem)
+                            {
+                                case "SizeName":
+                                case "DieNo":
+                                case "UpdatedTime":
+                                    break;
+                                default:
+                                    query = @"INSERT INTO BTMVLocalApps.dbo.MTRL_ContourDataFromSimulation(SizeName, DieNo, UpdatedTime, Parameter, Spec, MachineType) VALUES"
+                                                    + " ('" + _topSavedData.SizeName + "', '" + data + "', GETDATE()," +
+                                                    " '" + dataItem + "', '" + propertyValue + "','Top')";
+                                    queries.Add(query);
+                                    break;
+                            }
+                        }
+                        //Query save log
+                        queryLog = @"INSERT INTO MTRL_SimulationTransferLogs(ContNo, KoContNo, OiNo,BSSize,DepName,Reson,Width,MatName,DepDate,GaugeNum,GaugePos,Gauge,Notes,Approved_By,Approved_Date,EmailStatus,ApproveStatus,
+                                        MainSeriesPlotPos, MainSeriesPlotVal, SeriesPlot1Pos, SeriesPlot1Val, SeriesPlot2Pos, SeriesPlot2Val, SeriesPlot3Pos, SeriesPlot3Val, SeriesPlot4Pos, SeriesPlot4Val,
+                                        SeriesPlot5Pos, SeriesPlot5Val, SeriesPlot6Pos, SeriesPlot6Val) VALUES " +
+                                            " ('" + _topSimulationData.ContNo + "','" + data + "','" + _topSimulationData.OiNo + "','" + _topSimulationData.BSSize + "','" + _topSimulationData.DepName + "','" + _topSimulationData.Reason + "'," +
+                                            "'" + _topSimulationData.Wid + "','" + _topSimulationData.MatName + "','" + _topSimulationData.DepDate + "','" + _topSimulationData.GaugeNum + "','" + _topSimulationData.GaugePos + "','" + _topSimulationData.Gauge + "'," +
+                                            "'" + _topSimulationData.Notes + "','" + approveBy + "',GETDATE(),'0','1','" + PlotStringBuilder(mainLinePlot, 1) + "','" + PlotStringBuilder(mainLinePlot, 2) + "'," +
+                                            "'" + PlotStringBuilder(series1Plot, 1) + "','" + PlotStringBuilder(series1Plot, 2) + "','" + PlotStringBuilder(series2Plot, 1) + "','" + PlotStringBuilder(series2Plot, 2) + "','" + PlotStringBuilder(series3Plot, 1) + "','" + PlotStringBuilder(series3Plot, 2) + "'," +
+                                            "'" + PlotStringBuilder(series4Plot, 1) + "','" + PlotStringBuilder(series4Plot, 2) + "','" + PlotStringBuilder(series5Plot, 1) + "','" + PlotStringBuilder(series5Plot, 2) + "','" + PlotStringBuilder(series6Plot, 1) + "','" + PlotStringBuilder(series6Plot, 2) + "')";
+                        if (getTransferLogData.Rows.Count > 0)
+                        {
+                            queries.Add(@"DELETE FROM MTRL_SimulationTransferLogs WHERE ContNo = '" + _topSimulationData.ContNo + "' AND KoContNo = '" + _topSimulationData.KoContNo + "' AND OiNo = '" + _topSimulationData.OiNo + "'");
+                            queries.Add(queryLog);
+                        }
+                        else
+                        {
+                            queries.Add(queryLog);
+                        }
+
+                        SqlConnect_10_118_11_111.ExecuteQueryUsingTran(queries);
+                        break;
+                }
+            }            
+        }
         private void CreateSPECFile(int materialType)
         {
             string specDetails = DataUtilities.STARTFORMAT;
@@ -2145,6 +2476,371 @@ namespace AutoCreateContourSPEC
                     break;
             }            
         }
+        private void CreateSPECFile(int materialType, List<string> listData)
+        {
+            string specDetails = DataUtilities.STARTFORMAT;
+            string folderPending = ConfigurationManager.AppSettings["folderPending"];
+
+            string fileName = "";
+            string firstDieNo = "";
+            double middleDieNo = 0;
+            string extenddieNo = "";
+            string filePath = "";
+            foreach(string data in listData)
+            {
+                switch (materialType)
+                {
+                    case 1://BF
+                        specDetails = DataUtilities.SIDEANDBFFORMAT;
+                        specDetails += "\n" + mainLinePlot.Count.ToString() + "\n" + "0" + "\n" + "0" + "\n" + "0";
+                        for (int i = 0; i < mainLinePlot.Count; i++)
+                        {
+                            specDetails += "\n" + mainLinePlot[i].ArguementPlot.ToString();
+                        }
+                        for (int i = 0; i < mainLinePlot.Count; i++)
+                        {
+                            specDetails += "\n" + mainLinePlot[i].ValuePlot.ToString();
+                        }
+                        firstDieNo = data;
+                        fileName = firstDieNo + ".B_S";
+
+                        // Create File
+                        try
+                        {
+                            if (!Directory.Exists(folderPending))
+                            {
+                                Directory.CreateDirectory(folderPending);
+                            }
+                            else
+                            {
+                                filePath = Path.Combine(folderPending + fileName);
+                                try
+                                {
+                                    using (StreamWriter stream = new StreamWriter(filePath))
+                                    {
+                                        stream.Write(specDetails);
+                                    }
+                                    MessageBox.Show("Đã tạo file Spec cho Contour thành công", "Thông Báo");
+                                }
+                                catch (Exception ex)
+                                {
+                                    MessageBox.Show(ex.Message);
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show(ex.Message, "Lỗi");
+                        }
+                        ConvertToCRLF(filePath);
+                        break;
+                    case 2://SIDE
+                        specDetails = DataUtilities.SIDEANDBFFORMAT;
+                        specDetails += "\n" + mainLinePlot.Count.ToString();
+                        if (_bsideSimulationData.Area1 != 0)
+                        {
+                            List<string> listJoinPoint = new List<string>();
+                            List<string> listJoinValue = new List<string>();
+                            for (int i = 0; i < _bsideSimulationData.Div1Num; i++)
+                            {
+                                listJoinPoint.Add(_bsideSimulationData.Div1X.Substring(i * 3, 3));
+                                listJoinValue.Add(_bsideSimulationData.Div1Y.Substring(i * 4, 4));
+                            }
+                            for (int i = 0; i < Convert.ToInt32(_bsideSimulationData.Div5Num); i++)
+                            {
+                                if (!listJoinPoint.Contains(_bsideSimulationData.Div5X.Substring(i * 3, 3)))
+                                {
+                                    listJoinPoint.Add(_bsideSimulationData.Div5X.Substring(i * 3, 3));
+                                    listJoinValue.Add(_bsideSimulationData.Div5Y.Substring(i * 4, 4));
+                                }
+                            }
+                            specDetails += "\n" + "3" + "\n" + "0" + "\n" + "0";
+                            for (int i = 0; i < mainLinePlot.Count; i++)
+                            {
+                                specDetails += "\n" + mainLinePlot[i].ArguementPlot.ToString();
+                            }
+                            for (int i = 0; i < mainLinePlot.Count; i++)
+                            {
+                                specDetails += "\n" + mainLinePlot[i].ValuePlot.ToString();
+                            }
+                            for (int i = 0; i < listJoinPoint.Count; i++)
+                            {
+                                specDetails += "\n" + listJoinPoint[i];
+                            }
+                            for (int i = 0; i < listJoinPoint.Count; i++)
+                            {
+                                specDetails += "\n" + listJoinValue[i];
+                            }
+                        }
+                        if (_bsideSimulationData.Area2 != 0)
+                        {
+                            specDetails += "\n" + _bsideSimulationData.Div5Num + "\n" + _bsideSimulationData.Div2Num + "\n" + "0";
+                            for (int i = 0; i < mainLinePlot.Count; i++)
+                            {
+                                specDetails += "\n" + mainLinePlot[i].ArguementPlot.ToString();
+                            }
+                            for (int i = 0; i < mainLinePlot.Count; i++)
+                            {
+                                specDetails += "\n" + mainLinePlot[i].ValuePlot.ToString();
+                            }
+                            for (int i = 0; i < series5Plot.Count; i++)
+                            {
+                                specDetails += "\n" + series5Plot[i].ArguementPlot;
+                            }
+                            for (int i = 0; i < series5Plot.Count; i++)
+                            {
+                                specDetails += "\n" + series5Plot[i].ValuePlot;
+                            }
+                            for (int i = 0; i < series2Plot.Count; i++)
+                            {
+                                specDetails += "\n" + series2Plot[i].ArguementPlot;
+                            }
+                            for (int i = 0; i < series2Plot.Count; i++)
+                            {
+                                specDetails += "\n" + series2Plot[i].ValuePlot;
+                            }
+                        }
+                        if (_bsideSimulationData.Area4 != 0)
+                        {
+                            specDetails += "\n" + _bsideSimulationData.Div5Num + "\n" + "0";
+                            specDetails += "\n" + _bsideSimulationData.Div4Num;
+                            for (int i = 0; i < mainLinePlot.Count; i++)
+                            {
+                                specDetails += "\n" + mainLinePlot[i].ArguementPlot.ToString();
+                            }
+                            for (int i = 0; i < mainLinePlot.Count; i++)
+                            {
+                                specDetails += "\n" + mainLinePlot[i].ValuePlot.ToString();
+                            }
+                            for (int i = 0; i < series5Plot.Count; i++)
+                            {
+                                specDetails += "\n" + series5Plot[i].ArguementPlot;
+                            }
+                            for (int i = 0; i < series5Plot.Count; i++)
+                            {
+                                specDetails += "\n" + series5Plot[i].ValuePlot;
+                            }
+                            for (int i = 0; i < series4Plot.Count; i++)
+                            {
+                                specDetails += "\n" + series4Plot[i].ArguementPlot;
+                            }
+                            for (int i = 0; i < series4Plot.Count; i++)
+                            {
+                                specDetails += "\n" + series4Plot[i].ValuePlot;
+                            }
+                        }
+                        if (_bsideSimulationData.Area1 == 0 && _bsideSimulationData.Area2 == 0 && _bsideSimulationData.Area4 == 0)
+                        {
+                            specDetails += "\n" + _bsideSimulationData.Div5Num + "\n" + "0" + "\n" + "0";
+                            for (int i = 0; i < mainLinePlot.Count; i++)
+                            {
+                                specDetails += "\n" + mainLinePlot[i].ArguementPlot.ToString();
+                            }
+                            for (int i = 0; i < mainLinePlot.Count; i++)
+                            {
+                                specDetails += "\n" + mainLinePlot[i].ValuePlot.ToString();
+                            }
+                            for (int i = 0; i < series5Plot.Count; i++)
+                            {
+                                specDetails += "\n" + series5Plot[i].ArguementPlot;
+                            }
+                            for (int i = 0; i < series5Plot.Count; i++)
+                            {
+                                specDetails += "\n" + series5Plot[i].ValuePlot;
+                            }
+                        }
+                        firstDieNo = data;
+                        fileName = firstDieNo + ".S_S";
+                        // Create File
+                        try
+                        {
+                            if (!Directory.Exists(folderPending))
+                            {
+                                Directory.CreateDirectory(folderPending);
+                            }
+                            else
+                            {
+                                filePath = Path.Combine(folderPending + fileName);
+                                try
+                                {
+                                    using (StreamWriter stream = new StreamWriter(filePath))
+                                    {
+                                        stream.Write(specDetails);
+                                    }
+                                    MessageBox.Show("Đã tạo file Spec cho Contour thành công", "Thông Báo");
+                                }
+                                catch (Exception ex)
+                                {
+                                    MessageBox.Show(ex.Message);
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show(ex.Message, "Lỗi");
+                        }
+                        ConvertToCRLF(filePath);
+                        break;
+                    case 3://TOP
+                    case 4:
+                        if (_dataDieNoRegister.Rows[0]["UsingMachine"].ToString() == "MAT")
+                        {
+                            specDetails += "\n" + _dataDieNoRegister.Rows[0]["DesignType"].ToString() + "\n" + _topSimulationData.HumpWid.ToString() + "\n" + _topSimulationData.SlitPos.ToString();
+                        }
+                        else
+                        {
+                            specDetails += "\n" + _dataDieNoRegister.Rows[0]["DesignType"].ToString() + "\n" + _topSimulationData.HumpWid.ToString() + "\n" + (_topSimulationData.SlitPos * (-1)).ToString();
+                        }
+                        // slit width + slit height 
+                        if (_topSimulationData.Div3Num != 0 && _topSimulationData.Div1Num != 0)
+                        {
+                            specDetails += "\n" + _topSimulationData.SlitWid.ToString() + "\n" + (Convert.ToDouble(_topSimulationData.Div3Y.Substring(0, 4)) + Convert.ToDouble(_topSimulationData.Div1Y.Substring(0, 4))).ToString() + "\n" + DataUtilities.MIDDLEFORMAT;
+                        }
+                        else
+                        {
+                            specDetails += "\n" + _topSimulationData.SlitWid.ToString() + "\n" + (Convert.ToDouble("0") + Convert.ToDouble("0")).ToString() + "\n" + DataUtilities.MIDDLEFORMAT;
+                        }
+
+                        // Number plot of main line
+                        specDetails += "\n" + mainLinePlot.Count.ToString();
+                        //BASE DIV2                    
+                        //MINI DIV5
+                        //TUC DIV1
+                        specDetails += "\n" + series2Plot.Count.ToString();
+                        if (series6Plot.Count > 0)
+                        {
+                            specDetails += "\n" + (series5Plot.Count + series6Plot.Count).ToString();
+                        }
+                        else
+                        {
+                            specDetails += "\n" + series5Plot.Count.ToString();
+                        }
+                        specDetails += "\n" + series1Plot.Count.ToString();
+                        //Main
+                        for (int i = 0; i < mainLinePlot.Count; i++)
+                        {
+                            specDetails += "\n" + mainLinePlot[i].ArguementPlot.ToString();
+                        }
+                        for (int i = 0; i < mainLinePlot.Count; i++)
+                        {
+                            specDetails += "\n" + mainLinePlot[i].ValuePlot.ToString();
+                        }
+                        //BASE
+                        for (int i = 0; i < series2Plot.Count; i++)
+                        {
+                            specDetails += "\n" + series2Plot[i].ArguementPlot.ToString();
+                        }
+                        for (int i = 0; i < series2Plot.Count; i++)
+                        {
+                            specDetails += "\n" + series2Plot[i].ValuePlot.ToString();
+                        }
+                        //MINI 
+                        if (series6Plot.Count > 0)
+                        {
+                            for (int i = series6Plot.Count - 1; i >= 0; i--)
+                            {
+                                specDetails += "\n" + series6Plot[i].ArguementPlot.ToString();
+                            }
+                            for (int i = 0; i < series5Plot.Count; i++)
+                            {
+                                specDetails += "\n" + series5Plot[i].ArguementPlot.ToString();
+                            }
+                            for (int i = series6Plot.Count - 1; i >= 0; i--)
+                            {
+                                specDetails += "\n" + series6Plot[i].ValuePlot.ToString();
+                            }
+                            for (int i = 0; i < series5Plot.Count; i++)
+                            {
+                                specDetails += "\n" + series5Plot[i].ValuePlot.ToString();
+                            }
+                        }
+
+                        if (series5Plot.Count > 0 && _topSimulationData.SlitWid == 0)
+                        {
+                            for (int i = 0; i < series5Plot.Count; i++)
+                            {
+                                specDetails += "\n" + series5Plot[i].ArguementPlot.ToString();
+                            }
+                            for (int i = 0; i < series5Plot.Count; i++)
+                            {
+                                specDetails += "\n" + series5Plot[i].ValuePlot.ToString();
+                            }
+                        }
+
+                        //TUC
+                        for (int i = 0; i < series1Plot.Count; i++)
+                        {
+                            specDetails += "\n" + series1Plot[i].ArguementPlot.ToString();
+                        }
+                        for (int i = 0; i < series1Plot.Count; i++)
+                        {
+                            specDetails += "\n" + series1Plot[i].ValuePlot.ToString();
+                        }
+
+                        //Slit
+                        //if(_topSimulationData.Div3Num != 0)
+                        //{
+                        //    for (int i = 0; i < series3Plot.Count; i++)
+                        //    {
+                        //        specDetails += "\n" + series3Plot[i].ArguementPlot.ToString();
+                        //    }
+                        //    for (int i = 0; i < series3Plot.Count; i++)
+                        //    {
+                        //        specDetails += "\n" + series3Plot[i].ValuePlot.ToString();
+                        //    }
+                        //}
+
+                        //if (_topSimulationData.Div4Num != 0)
+                        //{
+                        //    for (int i = 0; i < series4Plot.Count; i++)
+                        //    {
+                        //        specDetails += "\n" + series4Plot[i].ArguementPlot.ToString();
+                        //    }
+                        //    for (int i = 0; i < series4Plot.Count; i++)
+                        //    {
+                        //        specDetails += "\n" + series4Plot[i].ValuePlot.ToString();
+                        //    }
+                        //}
+
+                        firstDieNo = data.Substring(0, 2);
+                        middleDieNo = Convert.ToDouble(data.Substring(3, 3));
+                        extenddieNo = data.Substring(6);
+                        fileName = firstDieNo + middleDieNo.ToString() + extenddieNo + ".T_S";
+
+                        // Create File
+                        try
+                        {
+                            if (!Directory.Exists(folderPending))
+                            {
+                                Directory.CreateDirectory(folderPending);
+                            }
+                            else
+                            {
+                                CreateFileByFtp(fileName, specDetails);
+                                filePath = Path.Combine(folderPending + fileName);
+                                //try
+                                //{
+                                //    using (StreamWriter stream = new StreamWriter(filePath))
+                                //    {
+                                //        stream.Write(specDetails);
+                                //    }
+                                //    MessageBox.Show("Đã tạo file Spec cho Contour thành công", "Thông Báo");
+                                //}
+                                //catch(Exception ex)
+                                //{
+                                //    MessageBox.Show(ex.Message);
+                                //}
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show(ex.Message, "Lỗi");
+                        }
+                        ConvertToCRLF(filePath);
+                        break;
+                }
+            }
+        }
         private void CreateFileByFtp(string fileName,string fileContent)
         {
             try
@@ -2336,6 +3032,28 @@ namespace AutoCreateContourSPEC
         private void frmMessageBox_FormClosed(object sender, FormClosedEventArgs e)
         {
             
+        }
+
+        private void btnMutipleApprove_Click(object sender, EventArgs e)
+        {
+            List<string> listDieNoApproved = new List<string>();
+            foreach(Control control in groupBox1.Controls)
+            {
+                if(control is CheckBox)
+                {
+                    CheckBox checkBox = (CheckBox)control;
+                    if (checkBox.Checked)
+                    {
+                        listDieNoApproved.Add(checkBox.Text);
+                    }
+                }
+            }
+            DialogResult rs = MessageBox.Show("Bạn có thực sự muốn phê duyệt dư liệu Contour này không?", "Thông Báo Quan Trọng", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+            if (rs == DialogResult.Yes)
+            {
+                SaveContourData(_materialType, listDieNoApproved);
+                CreateSPECFile(_materialType, listDieNoApproved);
+            }
         }
     }
 }

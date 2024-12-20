@@ -74,6 +74,8 @@
             this.label1 = new System.Windows.Forms.Label();
             this.flyoutPanelControl2 = new DevExpress.Utils.FlyoutPanelControl();
             this.flyoutPanelControl3 = new DevExpress.Utils.FlyoutPanelControl();
+            this.btnMutipleApprove = new DevExpress.XtraEditors.SimpleButton();
+            this.groupBox1 = new System.Windows.Forms.GroupBox();
             this.btnAprove = new DevExpress.XtraEditors.SimpleButton();
             this.btnBack = new DevExpress.XtraEditors.SimpleButton();
             this.TabControl1 = new DevExpress.XtraTab.XtraTabControl();
@@ -195,19 +197,43 @@
             this.flyoutPanelControl2.FlyoutPanel = null;
             this.flyoutPanelControl2.Location = new System.Drawing.Point(0, 53);
             this.flyoutPanelControl2.Name = "flyoutPanelControl2";
-            this.flyoutPanelControl2.Size = new System.Drawing.Size(1342, 930);
+            this.flyoutPanelControl2.Size = new System.Drawing.Size(1342, 953);
             this.flyoutPanelControl2.TabIndex = 0;
             // 
             // flyoutPanelControl3
             // 
+            this.flyoutPanelControl3.Controls.Add(this.btnMutipleApprove);
+            this.flyoutPanelControl3.Controls.Add(this.groupBox1);
             this.flyoutPanelControl3.Controls.Add(this.btnAprove);
             this.flyoutPanelControl3.Controls.Add(this.btnBack);
             this.flyoutPanelControl3.Dock = System.Windows.Forms.DockStyle.Bottom;
             this.flyoutPanelControl3.FlyoutPanel = null;
-            this.flyoutPanelControl3.Location = new System.Drawing.Point(2, 853);
+            this.flyoutPanelControl3.Location = new System.Drawing.Point(2, 855);
             this.flyoutPanelControl3.Name = "flyoutPanelControl3";
-            this.flyoutPanelControl3.Size = new System.Drawing.Size(1338, 75);
+            this.flyoutPanelControl3.Size = new System.Drawing.Size(1338, 96);
             this.flyoutPanelControl3.TabIndex = 0;
+            // 
+            // btnMutipleApprove
+            // 
+            this.btnMutipleApprove.Appearance.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(192)))), ((int)(((byte)(0)))), ((int)(((byte)(0)))));
+            this.btnMutipleApprove.Appearance.Font = new System.Drawing.Font("Tahoma", 10F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnMutipleApprove.Appearance.Options.UseBackColor = true;
+            this.btnMutipleApprove.Appearance.Options.UseFont = true;
+            this.btnMutipleApprove.Location = new System.Drawing.Point(709, 0);
+            this.btnMutipleApprove.Name = "btnMutipleApprove";
+            this.btnMutipleApprove.Size = new System.Drawing.Size(347, 93);
+            this.btnMutipleApprove.TabIndex = 2;
+            this.btnMutipleApprove.Text = ">>> Phê Duyệt Nhiều Die";
+            this.btnMutipleApprove.Click += new System.EventHandler(this.btnMutipleApprove_Click);
+            // 
+            // groupBox1
+            // 
+            this.groupBox1.Location = new System.Drawing.Point(340, 5);
+            this.groupBox1.Name = "groupBox1";
+            this.groupBox1.Size = new System.Drawing.Size(363, 89);
+            this.groupBox1.TabIndex = 1;
+            this.groupBox1.TabStop = false;
+            this.groupBox1.Text = "Nhóm DieNo";
             // 
             // btnAprove
             // 
@@ -218,7 +244,7 @@
             this.btnAprove.Dock = System.Windows.Forms.DockStyle.Right;
             this.btnAprove.Location = new System.Drawing.Point(1154, 2);
             this.btnAprove.Name = "btnAprove";
-            this.btnAprove.Size = new System.Drawing.Size(182, 71);
+            this.btnAprove.Size = new System.Drawing.Size(182, 92);
             this.btnAprove.TabIndex = 0;
             this.btnAprove.Text = ">> &Thông Qua";
             this.btnAprove.Click += new System.EventHandler(this.btnAprove_Click);
@@ -234,7 +260,7 @@
             this.btnBack.Dock = System.Windows.Forms.DockStyle.Left;
             this.btnBack.Location = new System.Drawing.Point(2, 2);
             this.btnBack.Name = "btnBack";
-            this.btnBack.Size = new System.Drawing.Size(171, 71);
+            this.btnBack.Size = new System.Drawing.Size(171, 92);
             this.btnBack.TabIndex = 0;
             this.btnBack.Text = "<< &Trở Về";
             this.btnBack.Click += new System.EventHandler(this.btnBack_Click);
@@ -509,7 +535,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1342, 983);
+            this.ClientSize = new System.Drawing.Size(1342, 1006);
             this.Controls.Add(this.flyoutPanelControl2);
             this.Controls.Add(this.flyoutPanelControl1);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
@@ -617,5 +643,7 @@
         private DevExpress.XtraGrid.Views.Grid.GridView gridView2;
         private DevExpress.XtraBars.ToastNotifications.ToastNotificationsManager toastNotificationsManager1;
         private DevExpress.XtraBars.Alerter.AlertControl alertControl1;
+        private DevExpress.XtraEditors.SimpleButton btnMutipleApprove;
+        private System.Windows.Forms.GroupBox groupBox1;
     }
 }

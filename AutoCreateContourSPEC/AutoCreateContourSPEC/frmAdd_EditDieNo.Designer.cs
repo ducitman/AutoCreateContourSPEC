@@ -81,8 +81,8 @@ namespace AutoCreateContourSPEC
             // 
             this.cbTiretype.FormattingEnabled = true;
             this.cbTiretype.Items.AddRange(new object[] {
-            "REP",
-            "OE"});
+            "General",
+            "Over V Rank"});
             this.cbTiretype.Location = new System.Drawing.Point(184, 271);
             this.cbTiretype.Name = "cbTiretype";
             this.cbTiretype.Size = new System.Drawing.Size(345, 27);
